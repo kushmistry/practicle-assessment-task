@@ -1,5 +1,5 @@
 import math
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 from sqlalchemy.orm import Session
 from app.models.article import Article
 from app.schemas.article import ArticleCreate, ArticleResponse
@@ -20,6 +20,13 @@ class ArticleService:
         if not article:
             return None
         return ArticleResponse.model_validate(article)
+
+    def update(self, db: Session, article_id: int, update_in: Union[dict, Any]) -> Optional[ArticleResponse]:
+        db_article = self.repo.get(db=db, id=article_id)
+        if not db_article:
+            return None
+        updated_article = self.repo.update_article(db=db, db_article=db_article, update_in=update_in)
+        return ArticleResponse.model_validate(updated_article)
 
     def list_articles(
         self,
@@ -52,6 +59,40 @@ class ArticleService:
 
         items = [ArticleResponse.model_validate(art) for art in articles]
         return items, meta
+
+    def article_processing(self, article: Union[dict, ArticleResponse]) -> dict:
+        """
+        Classifies article into a category and produces a concise summary based on content.
+        """
+        if hasattr(article, "model_dump"):
+            data = article.model_dump()
+        elif isinstance(article, dict):
+            data = article
+        else:
+            data = dict(article)
+
+        content = data.get("content", "")
+        title = data.get("title", "")
+        combined_text = f"{title} {content}".lower()
+
+        tech_keywords = ["software", "ai", "llm", "ml", "c++", "coding", "python", "cloud", "api", "data"]
+        matched_keywords = [kw for kw in tech_keywords if kw in combined_text]
+
+        if matched_keywords:
+            category = "Technology"
+            key_topics = ", ".join(k.upper() if len(k) <= 3 else k.capitalize() for k in matched_keywords)
+            summary = (
+                f"This article discusses technology innovations and development. "
+                f"Identified core topics: {key_topics}."
+            )
+        else:
+            category = "General"
+            summary = "This article covers general corporate announcements, news, or press releases."
+
+        return {
+            "category": category,
+            "summary": summary,
+        }
 
 
 article_service = ArticleService()

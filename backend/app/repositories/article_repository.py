@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.models.article import Article
@@ -54,11 +54,19 @@ class ArticleRepository(BaseRepository[Article]):
         return articles, total
 
     def update_article(
-        self, db: Session, *, db_article: Article, update_in: ArticleUpdate
+        self, db: Session, *, db_article: Article, update_in: Union[ArticleUpdate, Dict[str, Any]]
     ) -> Article:
-        update_data = update_in.model_dump(exclude_unset=True)
+        if hasattr(update_in, "model_dump"):
+            update_data = update_in.model_dump(exclude_unset=True)
+        elif isinstance(update_in, dict):
+            update_data = update_in
+        else:
+            update_data = dict(update_in)
+
         for field, value in update_data.items():
-            setattr(db_article, field, value)
+            if hasattr(db_article, field):
+                setattr(db_article, field, value)
+
         db.add(db_article)
         db.commit()
         db.refresh(db_article)
@@ -66,4 +74,3 @@ class ArticleRepository(BaseRepository[Article]):
 
 
 article_repository = ArticleRepository()
-

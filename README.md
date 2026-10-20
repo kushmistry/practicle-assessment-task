@@ -240,7 +240,26 @@ The container `company_news_db` will be running on `0.0.0.0:5432`.
 
 ---
 
-### Step 3: Start the Frontend Application
+### Step 3: Run Celery Worker & Flower (Background Processing)
+
+1. **Start the Celery Worker (Windows):**
+   ```powershell
+   cd backend
+   ..\venv\Scripts\celery.exe -A celery_worker worker --pool=solo --loglevel=info
+   ```
+   *(Note: The `--pool=solo` flag is required on Windows to bypass Windows fork permission restrictions).*
+
+2. **Start Flower Dashboard (Optional, Real-Time Monitoring):**
+   Open another terminal:
+   ```powershell
+   cd backend
+   ..\venv\Scripts\celery.exe -A celery_worker flower --port=5555
+   ```
+   * Access Flower Web UI: [http://localhost:5555](http://localhost:5555)
+
+---
+
+### Step 4: Start the Frontend Application
 
 1. Open a new terminal and navigate to `frontend/`:
    ```powershell
